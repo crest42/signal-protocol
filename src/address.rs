@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct ProtocolAddress {
-    pub state: libsignal_protocol_rust::ProtocolAddress,
+    pub state: libsignal_protocol::ProtocolAddress,
 }
 
 #[pymethods]
@@ -12,7 +12,7 @@ impl ProtocolAddress {
     #[new]
     fn new(name: String, device_id: u32) -> ProtocolAddress {
         ProtocolAddress {
-            state: libsignal_protocol_rust::ProtocolAddress::new(name, device_id),
+            state: libsignal_protocol::ProtocolAddress::new(name, device_id.into()),
         }
     }
 
@@ -21,7 +21,7 @@ impl ProtocolAddress {
     }
 
     pub fn device_id(&self) -> u32 {
-        self.state.device_id()
+        self.state.device_id().into()
     }
 }
 

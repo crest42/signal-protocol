@@ -1,3 +1,14 @@
+THIS IS A FORK OF https://github.com/freedomofpress/signal-protocol with the aim to update to the latest libsignal rust bindings.
+
+I updated the code to compile with the latest libsignal but there is still some work left and I assume it is currently not in a working state. Known todos:
+
+- MyUuid is a ugly hack. Rename to Uuid or better use Python uuid module
+- Not updated for Kyber support. I assume this breaks key exchange.
+- Tests are not updates yet.
+
+I hope I find some time to further develop this and run it against a private signal server. Much shoutout to freedomofpress for the awesome work.
+
+
 # signal-protocol
 
 [![CircleCI](https://circleci.com/gh/freedomofpress/signal-protocol.svg?style=svg)](https://circleci.com/gh/freedomofpress/signal-protocol)

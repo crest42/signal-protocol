@@ -4,25 +4,26 @@ use pyo3::prelude::*;
 use crate::address::ProtocolAddress;
 use crate::error::{Result, SignalProtocolError};
 use crate::identity_key::{IdentityKey, IdentityKeyPair};
-use crate::sender_keys::{SenderKeyName, SenderKeyRecord};
+use crate::sender_keys::SenderKeyRecord;
 use crate::state::{PreKeyId, PreKeyRecord, SessionRecord, SignedPreKeyId, SignedPreKeyRecord};
+use crate::uuid::MyUuid;
 
 // traits
-use libsignal_protocol_rust::{
-    IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStore, SignedPreKeyStore,
+use libsignal_protocol::{
+    IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStore, SignedPreKeyStore
 };
 
 #[pyclass]
 #[derive(Clone)]
 pub struct InMemSignalProtocolStore {
-    pub store: libsignal_protocol_rust::InMemSignalProtocolStore,
+    pub store: libsignal_protocol::InMemSignalProtocolStore,
 }
 
 #[pymethods]
 impl InMemSignalProtocolStore {
     #[new]
     fn new(key_pair: &IdentityKeyPair, registration_id: u32) -> PyResult<InMemSignalProtocolStore> {
-        match libsignal_protocol_rust::InMemSignalProtocolStore::new(key_pair.key, registration_id)
+        match libsignal_protocol::InMemSignalProtocolStore::new(key_pair.key, registration_id)
         {
             Ok(store) => Ok(Self { store }),
             Err(err) => Err(SignalProtocolError::new_err(err)),
@@ -30,18 +31,18 @@ impl InMemSignalProtocolStore {
     }
 }
 
-/// libsignal_protocol_rust::IdentityKeyStore
+/// libsignal_protocol::IdentityKeyStore
 /// is_trusted_identity is not implemented (it requries traits::Direction as arg)
 #[pymethods]
 impl InMemSignalProtocolStore {
     fn get_identity_key_pair(&self) -> Result<IdentityKeyPair> {
-        let key = block_on(self.store.identity_store.get_identity_key_pair(None))?;
+        let key = block_on(self.store.identity_store.get_identity_key_pair())?;
         Ok(IdentityKeyPair { key })
     }
 
     fn get_local_registration_id(&self) -> Result<u32> {
         Ok(block_on(
-            self.store.identity_store.get_local_registration_id(None),
+            self.store.identity_store.get_local_registration_id(),
         )?)
     }
 
@@ -49,12 +50,11 @@ impl InMemSignalProtocolStore {
         Ok(block_on(self.store.identity_store.save_identity(
             &address.state,
             &identity.key,
-            None,
         ))?)
     }
 
     fn get_identity(&self, address: &ProtocolAddress) -> Result<Option<IdentityKey>> {
-        let key = block_on(self.store.identity_store.get_identity(&address.state, None))?;
+        let key = block_on(self.store.identity_store.get_identity(&address.state))?;
 
         match key {
             Some(key) => Ok(Some(IdentityKey { key })),
@@ -63,11 +63,11 @@ impl InMemSignalProtocolStore {
     }
 }
 
-/// libsignal_protocol_rust::SessionStore
+/// libsignal_protocol::SessionStore
 #[pymethods]
 impl InMemSignalProtocolStore {
     pub fn load_session(&self, address: &ProtocolAddress) -> Result<Option<SessionRecord>> {
-        let session = block_on(self.store.load_session(&address.state, None))?;
+        let session = block_on(self.store.load_session(&address.state))?;
 
         match session {
             None => Ok(None),
@@ -78,17 +78,17 @@ impl InMemSignalProtocolStore {
     fn store_session(&mut self, address: &ProtocolAddress, record: &SessionRecord) -> Result<()> {
         block_on(
             self.store
-                .store_session(&address.state, &record.state, None),
+                .store_session(&address.state, &record.state),
         )?;
         Ok(())
     }
 }
 
-/// libsignal_protocol_rust::PreKeyStore
+/// libsignal_protocol::PreKeyStore
 #[pymethods]
 impl InMemSignalProtocolStore {
     fn get_pre_key(&self, id: PreKeyId) -> Result<PreKeyRecord> {
-        let state = block_on(self.store.pre_key_store.get_pre_key(id, None))?;
+        let state = block_on(self.store.pre_key_store.get_pre_key(id.into()))?;
         Ok(PreKeyRecord { state })
     }
 
@@ -96,22 +96,22 @@ impl InMemSignalProtocolStore {
         block_on(
             self.store
                 .pre_key_store
-                .save_pre_key(id, &record.state, None),
+                .save_pre_key(id.into(), &record.state),
         )?;
         Ok(())
     }
 
     fn remove_pre_key(&mut self, id: PreKeyId) -> Result<()> {
-        block_on(self.store.pre_key_store.remove_pre_key(id, None))?;
+        block_on(self.store.pre_key_store.remove_pre_key(id.into()))?;
         Ok(())
     }
 }
 
-/// libsignal_protocol_rust::SignedPreKeyStore
+/// libsignal_protocol::SignedPreKeyStore
 #[pymethods]
 impl InMemSignalProtocolStore {
     fn get_signed_pre_key(&self, id: SignedPreKeyId) -> Result<SignedPreKeyRecord> {
-        let state = block_on(self.store.get_signed_pre_key(id, None))?;
+        let state = block_on(self.store.get_signed_pre_key(id.into()))?;
         Ok(SignedPreKeyRecord { state })
     }
 
@@ -122,32 +122,34 @@ impl InMemSignalProtocolStore {
     ) -> Result<()> {
         block_on(
             self.store
-                .save_signed_pre_key(id, &record.state.to_owned(), None),
+                .save_signed_pre_key(id.into(), &record.state.to_owned()),
         )?;
         Ok(())
     }
 }
 
-/// libsignal_protocol_rust::SenderKeyStore
+/// libsignal_protocol::SenderKeyStore
 #[pymethods]
 impl InMemSignalProtocolStore {
     fn store_sender_key(
         &mut self,
-        sender_key_name: &SenderKeyName,
+        sender: &ProtocolAddress,
+        distribution_id: MyUuid,
         record: &SenderKeyRecord,
     ) -> Result<()> {
         Ok(block_on(self.store.store_sender_key(
-            &sender_key_name.state,
+            &sender.state,
+            distribution_id.uuid,
             &record.state,
-            None,
         ))?)
     }
 
     fn load_sender_key(
         &mut self,
-        sender_key_name: &SenderKeyName,
+        sender: &ProtocolAddress,
+        distribution_id: MyUuid,
     ) -> Result<Option<SenderKeyRecord>> {
-        match block_on(self.store.load_sender_key(&sender_key_name.state, None))? {
+        match block_on(self.store.load_sender_key(&sender.state, distribution_id.uuid))? {
             Some(state) => Ok(Some(SenderKeyRecord { state })),
             None => Ok(None),
         }

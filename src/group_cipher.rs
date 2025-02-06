@@ -6,26 +6,28 @@ use futures::executor::block_on;
 use rand::rngs::OsRng;
 
 use crate::error::{Result, SignalProtocolError};
-use crate::protocol::{CiphertextMessage, SenderKeyDistributionMessage};
-use crate::sender_keys::SenderKeyName;
+use crate::protocol::SenderKeyDistributionMessage;
+use crate::address::ProtocolAddress;
 use crate::storage::InMemSignalProtocolStore;
+use crate::uuid::MyUuid;
 
 #[pyfunction]
 pub fn group_encrypt(
     py: Python,
     protocol_store: &mut InMemSignalProtocolStore,
-    sender_key_id: &SenderKeyName,
+    sender: &ProtocolAddress,
+    distribution_id: MyUuid,
     plaintext: &[u8],
 ) -> Result<PyObject> {
     let mut csprng = OsRng;
-    let ciphertext = block_on(libsignal_protocol_rust::group_encrypt(
+    let ciphertext = block_on(libsignal_protocol::group_encrypt(
         &mut protocol_store.store.sender_key_store,
-        &sender_key_id.state,
+        &sender.state,
+        distribution_id.uuid,
         plaintext,
         &mut csprng,
-        None,
     ))?;
-    Ok(PyBytes::new(py, &ciphertext).into())
+    Ok(PyBytes::new(py, &ciphertext.serialized()).into())
 }
 
 #[pyfunction]
@@ -33,68 +35,52 @@ pub fn group_decrypt(
     py: Python,
     skm_bytes: &[u8],
     protocol_store: &mut InMemSignalProtocolStore,
-    sender_key_id: &SenderKeyName,
+    protocol_address: &ProtocolAddress,
 ) -> Result<PyObject> {
-    let plaintext = block_on(libsignal_protocol_rust::group_decrypt(
+    let plaintext = block_on(libsignal_protocol::group_decrypt(
         skm_bytes,
         &mut protocol_store.store.sender_key_store,
-        &sender_key_id.state,
-        None,
+        &protocol_address.state,
     ))?;
     Ok(PyBytes::new(py, &plaintext).into())
 }
 
 #[pyfunction]
 pub fn process_sender_key_distribution_message(
-    sender_key_name: &SenderKeyName,
+    protocol_address: &ProtocolAddress,
     skdm: &SenderKeyDistributionMessage,
     protocol_store: &mut InMemSignalProtocolStore,
 ) -> Result<()> {
     Ok(block_on(
-        libsignal_protocol_rust::process_sender_key_distribution_message(
-            &sender_key_name.state,
+        libsignal_protocol::process_sender_key_distribution_message(
+            &protocol_address.state,
             &skdm.data,
             &mut protocol_store.store.sender_key_store,
-            None,
         ),
     )?)
 }
 
 #[pyfunction]
 pub fn create_sender_key_distribution_message(
-    sender_key_name: &SenderKeyName,
+    sender: &ProtocolAddress,
+    distribution_id: MyUuid,
     protocol_store: &mut InMemSignalProtocolStore,
-) -> PyResult<Py<SenderKeyDistributionMessage>> {
+) -> PyResult<SenderKeyDistributionMessage> {
     let mut csprng = OsRng;
     let upstream_data = match block_on(
-        libsignal_protocol_rust::create_sender_key_distribution_message(
-            &sender_key_name.state,
+        libsignal_protocol::create_sender_key_distribution_message(
+            &sender.state,
+            distribution_id.uuid,
             &mut protocol_store.store.sender_key_store,
             &mut csprng,
-            None,
         ),
     ) {
         Ok(data) => data,
         Err(err) => return Err(SignalProtocolError::new_err(err)),
     };
-    let ciphertext = libsignal_protocol_rust::CiphertextMessage::SenderKeyDistributionMessage(
-        upstream_data.clone(),
-    );
-
-    // The CiphertextMessage is required as it is the base class for SenderKeyDistributionMessage
-    // on the Python side, so we must create _both_ a CiphertextMessage and a SenderKeyDistributionMessage
-    // on the Rust side for inheritance to work.
-    let gil = Python::acquire_gil();
-    let py = gil.python();
-    Py::new(
-        py,
-        (
-            SenderKeyDistributionMessage {
-                data: upstream_data,
-            },
-            CiphertextMessage { data: ciphertext },
-        ),
-    )
+    Ok(SenderKeyDistributionMessage {
+        data: upstream_data.clone(),
+    })
 }
 
 pub fn init_submodule(module: &PyModule) -> PyResult<()> {

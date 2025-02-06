@@ -8,22 +8,23 @@ use rand::rngs::OsRng;
 use crate::curve::{PrivateKey, PublicKey};
 use crate::error::{Result, SignalProtocolError};
 use crate::identity_key::IdentityKey;
+use crate::uuid::MyUuid;
 
 /// CiphertextMessage is a Rust enum in the upstream crate. Mapping of enums to Python enums
 /// is not supported in pyo3. We map the Rust enum and its variants to Python as a superclass
 /// (for CiphertextMessage) and subclasses (for variants of CiphertextMessage).
 #[pyclass(subclass)]
 pub struct CiphertextMessage {
-    pub data: libsignal_protocol_rust::CiphertextMessage,
+    pub data: libsignal_protocol::CiphertextMessage,
 }
 
 impl CiphertextMessage {
-    pub fn new(data: libsignal_protocol_rust::CiphertextMessage) -> Self {
+    pub fn new(data: libsignal_protocol::CiphertextMessage) -> Self {
         CiphertextMessage { data }
     }
 }
 
-/// We're using the following mapping of libsignal_protocol_rust::CiphertextMessageType to u8:
+/// We're using the following mapping of libsignal_protocol::CiphertextMessageType to u8:
 /// CiphertextMessageType::Whisper => 2
 /// CiphertextMessageType::PreKey => 3
 /// CiphertextMessageType::SenderKey => 4
@@ -43,19 +44,19 @@ impl CiphertextMessage {
 #[pyclass(extends=CiphertextMessage)]
 #[derive(Clone)]
 pub struct PreKeySignalMessage {
-    pub data: libsignal_protocol_rust::PreKeySignalMessage,
+    pub data: libsignal_protocol::PreKeySignalMessage,
 }
 
 #[pymethods]
 impl PreKeySignalMessage {
     #[staticmethod]
     pub fn try_from(data: &[u8]) -> PyResult<Py<PreKeySignalMessage>> {
-        let upstream_data = match libsignal_protocol_rust::PreKeySignalMessage::try_from(data) {
+        let upstream_data = match libsignal_protocol::PreKeySignalMessage::try_from(data) {
             Ok(data) => data,
             Err(err) => return Err(SignalProtocolError::new_err(err)),
         };
         let ciphertext =
-            libsignal_protocol_rust::CiphertextMessage::PreKeySignalMessage(upstream_data.clone());
+            libsignal_protocol::CiphertextMessage::PreKeySignalMessage(upstream_data.clone());
 
         // Workaround to allow two constructors with pyclass inheritence
         let gil = Python::acquire_gil();
@@ -81,11 +82,12 @@ impl PreKeySignalMessage {
         identity_key: IdentityKey,
         message: SignalMessage,
     ) -> PyResult<(Self, CiphertextMessage)> {
-        let upstream_data = match libsignal_protocol_rust::PreKeySignalMessage::new(
+        let upstream_data = match libsignal_protocol::PreKeySignalMessage::new(
             message_version,
             registration_id,
-            pre_key_id,
-            signed_pre_key_id,
+            Some(libsignal_protocol::PreKeyId::from(pre_key_id.expect("foo"))),
+            signed_pre_key_id.into(),
+            None,
             base_key.key,
             identity_key.key,
             message.data.clone(),
@@ -98,7 +100,7 @@ impl PreKeySignalMessage {
             data: upstream_data.clone(),
         };
         let ciphertext_msg = CiphertextMessage::new(
-            libsignal_protocol_rust::CiphertextMessage::PreKeySignalMessage(upstream_data),
+            libsignal_protocol::CiphertextMessage::PreKeySignalMessage(upstream_data),
         );
         Ok((variant_msg, ciphertext_msg))
     }
@@ -116,11 +118,11 @@ impl PreKeySignalMessage {
     }
 
     pub fn pre_key_id(&self) -> Option<u32> {
-        self.data.pre_key_id()
+        self.data.pre_key_id().map(u32::from)
     }
 
     pub fn signed_pre_key_id(&self) -> u32 {
-        self.data.signed_pre_key_id()
+        self.data.signed_pre_key_id().into()
     }
 
     pub fn base_key(&self) -> PublicKey {
@@ -140,7 +142,7 @@ impl PreKeySignalMessage {
         let py = gil.python();
         let upstream_data = self.data.message().clone();
         let ciphertext =
-            libsignal_protocol_rust::CiphertextMessage::SignalMessage(upstream_data.clone());
+            libsignal_protocol::CiphertextMessage::SignalMessage(upstream_data.clone());
         Py::new(
             py,
             (
@@ -157,19 +159,19 @@ impl PreKeySignalMessage {
 #[pyclass(extends=CiphertextMessage)]
 #[derive(Clone)]
 pub struct SignalMessage {
-    pub data: libsignal_protocol_rust::SignalMessage,
+    pub data: libsignal_protocol::SignalMessage,
 }
 
 #[pymethods]
 impl SignalMessage {
     #[staticmethod]
     pub fn try_from(data: &[u8]) -> PyResult<Py<SignalMessage>> {
-        let upstream_data = match libsignal_protocol_rust::SignalMessage::try_from(data) {
+        let upstream_data = match libsignal_protocol::SignalMessage::try_from(data) {
             Ok(data) => data,
             Err(err) => return Err(SignalProtocolError::new_err(err)),
         };
         let ciphertext =
-            libsignal_protocol_rust::CiphertextMessage::SignalMessage(upstream_data.clone());
+            libsignal_protocol::CiphertextMessage::SignalMessage(upstream_data.clone());
 
         // Workaround to allow two constructors with pyclass inheritence
         let gil = Python::acquire_gil();
@@ -196,7 +198,7 @@ impl SignalMessage {
         sender_identity_key: &IdentityKey,
         receiver_identity_key: &IdentityKey,
     ) -> PyResult<(Self, CiphertextMessage)> {
-        let upstream_data = match libsignal_protocol_rust::SignalMessage::new(
+        let upstream_data = match libsignal_protocol::SignalMessage::new(
             message_version,
             mac_key,
             sender_ratchet_key.key,
@@ -214,7 +216,7 @@ impl SignalMessage {
             data: upstream_data.clone(),
         };
         let ciphertext_msg = CiphertextMessage::new(
-            libsignal_protocol_rust::CiphertextMessage::SignalMessage(upstream_data),
+            libsignal_protocol::CiphertextMessage::SignalMessage(upstream_data),
         );
         Ok((variant_msg, ciphertext_msg))
     }
@@ -258,19 +260,19 @@ impl SignalMessage {
 /// CiphertextMessageType::SenderKey => 4
 #[pyclass(extends=CiphertextMessage)]
 pub struct SenderKeyMessage {
-    pub data: libsignal_protocol_rust::SenderKeyMessage,
+    pub data: libsignal_protocol::SenderKeyMessage,
 }
 
 #[pymethods]
 impl SenderKeyMessage {
     #[staticmethod]
     pub fn try_from(data: &[u8]) -> PyResult<Py<SenderKeyMessage>> {
-        let upstream_data = match libsignal_protocol_rust::SenderKeyMessage::try_from(data) {
+        let upstream_data = match libsignal_protocol::SenderKeyMessage::try_from(data) {
             Ok(data) => data,
             Err(err) => return Err(SignalProtocolError::new_err(err)),
         };
         let ciphertext =
-            libsignal_protocol_rust::CiphertextMessage::SenderKeyMessage(upstream_data.clone());
+            libsignal_protocol::CiphertextMessage::SenderKeyMessage(upstream_data.clone());
 
         // Workaround to allow two constructors with pyclass inheritence
         let gil = Python::acquire_gil();
@@ -288,16 +290,20 @@ impl SenderKeyMessage {
 
     #[new]
     pub fn new(
+        message_version: u8,
+        distribution_id: MyUuid,
         key_id: u32,
         iteration: u32,
         ciphertext: &[u8],
         signature_key: &PrivateKey,
     ) -> PyResult<(Self, CiphertextMessage)> {
         let mut csprng = OsRng;
-        let upstream_data = match libsignal_protocol_rust::SenderKeyMessage::new(
+        let upstream_data = match libsignal_protocol::SenderKeyMessage::new(
+            message_version,
+            distribution_id.uuid,
             key_id,
             iteration,
-            ciphertext,
+            ciphertext.into(),
             &mut csprng,
             &signature_key.key,
         ) {
@@ -309,7 +315,7 @@ impl SenderKeyMessage {
             data: upstream_data.clone(),
         };
         let ciphertext_msg = CiphertextMessage::new(
-            libsignal_protocol_rust::CiphertextMessage::SenderKeyMessage(upstream_data),
+            libsignal_protocol::CiphertextMessage::SenderKeyMessage(upstream_data),
         );
         Ok((variant_msg, ciphertext_msg))
     }
@@ -323,7 +329,7 @@ impl SenderKeyMessage {
     }
 
     pub fn key_id(&self) -> u32 {
-        self.data.key_id()
+        self.data.chain_id()
     }
 
     pub fn iteration(&self) -> u32 {
@@ -339,11 +345,10 @@ impl SenderKeyMessage {
     }
 }
 
-/// CiphertextMessageType::SenderKeyDistribution => 5
-#[pyclass(extends=CiphertextMessage)]
 #[derive(Debug, Clone)]
+#[pyclass]
 pub struct SenderKeyDistributionMessage {
-    pub data: libsignal_protocol_rust::SenderKeyDistributionMessage,
+    pub data: libsignal_protocol::SenderKeyDistributionMessage,
 }
 
 #[pymethods]
@@ -351,39 +356,36 @@ impl SenderKeyDistributionMessage {
     #[staticmethod]
     pub fn try_from(data: &[u8]) -> PyResult<Py<SenderKeyDistributionMessage>> {
         let upstream_data =
-            match libsignal_protocol_rust::SenderKeyDistributionMessage::try_from(data) {
+            match libsignal_protocol::SenderKeyDistributionMessage::try_from(data) {
                 Ok(data) => data,
                 Err(err) => return Err(SignalProtocolError::new_err(err)),
             };
-        let ciphertext = libsignal_protocol_rust::CiphertextMessage::SenderKeyDistributionMessage(
-            upstream_data.clone(),
-        );
-
         // Workaround to allow two constructors with pyclass inheritence
         let gil = Python::acquire_gil();
         let py = gil.python();
         Py::new(
             py,
-            (
-                SenderKeyDistributionMessage {
-                    data: upstream_data,
-                },
-                CiphertextMessage { data: ciphertext },
-            ),
+            SenderKeyDistributionMessage {
+                data: upstream_data.clone(),
+            },
         )
     }
 
     #[new]
     pub fn new(
+        message_version: u8,
+        distribution_id: MyUuid,
         id: u32,
         iteration: u32,
         chain_key: &[u8],
         signing_key: &PublicKey,
-    ) -> PyResult<(Self, CiphertextMessage)> {
-        let upstream_data = match libsignal_protocol_rust::SenderKeyDistributionMessage::new(
+    ) -> PyResult<SenderKeyDistributionMessage> {
+        let upstream_data = match libsignal_protocol::SenderKeyDistributionMessage::new(
+            message_version,
+            distribution_id.uuid,
             id,
             iteration,
-            chain_key,
+            chain_key.to_vec(),
             signing_key.key,
         ) {
             Ok(data) => data,
@@ -393,10 +395,7 @@ impl SenderKeyDistributionMessage {
         let variant_msg = SenderKeyDistributionMessage {
             data: upstream_data.clone(),
         };
-        let ciphertext_msg = CiphertextMessage::new(
-            libsignal_protocol_rust::CiphertextMessage::SenderKeyDistributionMessage(upstream_data),
-        );
-        Ok((variant_msg, ciphertext_msg))
+        Ok(variant_msg)
     }
 
     pub fn serialized(&self, py: Python) -> PyObject {
@@ -408,7 +407,7 @@ impl SenderKeyDistributionMessage {
     }
 
     pub fn id(&self) -> Result<u32> {
-        Ok(self.data.id()?)
+        Ok(self.data.chain_id()?)
     }
 
     pub fn iteration(&self) -> Result<u32> {

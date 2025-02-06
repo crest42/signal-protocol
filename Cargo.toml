@@ -6,10 +6,12 @@ edition = "2018"
 license = "AGPL-3.0-only"
 
 [dependencies]
-rand = "0.7.3"
-libsignal-protocol-rust = { git = "https://github.com/freedomofpress/libsignal-client", rev="609a1de73380a2b9d314db625e6b2f0368e838ec" }
+rand = "0.8"
+libsignal-protocol = { git = "https://github.com/signalapp/libsignal/", rev="ef5f5b9104fb52c1f9a99b8dc8c6682e57264833" }
+libsignal-core = { git = "https://github.com/signalapp/libsignal/", rev="ef5f5b9104fb52c1f9a99b8dc8c6682e57264833" }
 pyo3 = { version = "0.12.4", features = ["extension-module"] }
 futures = "0.3.7"
+uuid = "1.13.1"
 
 [lib]
 name = "signal_protocol"

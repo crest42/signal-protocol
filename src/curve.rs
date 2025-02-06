@@ -11,7 +11,7 @@ use crate::error::Result;
 #[pyfunction]
 pub fn generate_keypair(py: Python) -> PyResult<(PyObject, PyObject)> {
     let mut csprng = OsRng;
-    let key_pair = libsignal_protocol_rust::KeyPair::generate(&mut csprng);
+    let key_pair = libsignal_protocol::KeyPair::generate(&mut csprng);
 
     Ok((
         PyBytes::new(py, &key_pair.public_key.serialize()).into(),
@@ -22,21 +22,21 @@ pub fn generate_keypair(py: Python) -> PyResult<(PyObject, PyObject)> {
 #[pyclass]
 #[derive(Clone)]
 pub struct KeyPair {
-    pub key: libsignal_protocol_rust::KeyPair,
+    pub key: libsignal_protocol::KeyPair,
 }
 
 #[pymethods]
 impl KeyPair {
     #[new]
     fn new(public_key: PublicKey, private_key: PrivateKey) -> Self {
-        let keypair = libsignal_protocol_rust::KeyPair::new(public_key.key, private_key.key);
+        let keypair = libsignal_protocol::KeyPair::new(public_key.key, private_key.key);
         KeyPair { key: keypair }
     }
 
     #[staticmethod]
     pub fn generate() -> Self {
         let mut csprng = OsRng;
-        let keypair = libsignal_protocol_rust::KeyPair::generate(&mut csprng);
+        let keypair = libsignal_protocol::KeyPair::generate(&mut csprng);
         KeyPair { key: keypair }
     }
 
@@ -54,7 +54,7 @@ impl KeyPair {
     }
 
     pub fn calculate_signature(&self, py: Python, message: &[u8]) -> Result<PyObject> {
-        let mut csprng = OsRng;
+        let mut csprng = rand::rngs::OsRng;
         let sig = self.key.calculate_signature(&message, &mut csprng)?;
         Ok(PyBytes::new(py, &sig).into())
     }
@@ -67,7 +67,7 @@ impl KeyPair {
     #[staticmethod]
     pub fn from_public_and_private(public_key: &[u8], private_key: &[u8]) -> Result<Self> {
         Ok(KeyPair {
-            key: libsignal_protocol_rust::KeyPair::from_public_and_private(
+            key: libsignal_protocol::KeyPair::from_public_and_private(
                 public_key,
                 private_key,
             )?,
@@ -78,11 +78,11 @@ impl KeyPair {
 #[pyclass]
 #[derive(Debug, Clone, Copy)]
 pub struct PublicKey {
-    pub key: libsignal_protocol_rust::PublicKey,
+    pub key: libsignal_protocol::PublicKey,
 }
 
 impl PublicKey {
-    pub fn new(key: libsignal_protocol_rust::PublicKey) -> Self {
+    pub fn new(key: libsignal_protocol::PublicKey) -> Self {
         PublicKey { key }
     }
 }
@@ -93,7 +93,7 @@ impl PublicKey {
     #[staticmethod]
     pub fn deserialize(key: &[u8]) -> Result<Self> {
         Ok(Self {
-            key: libsignal_protocol_rust::PublicKey::deserialize(key)?,
+            key: libsignal_protocol::PublicKey::deserialize(key)?,
         })
     }
 
@@ -102,7 +102,7 @@ impl PublicKey {
     }
 
     pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> Result<bool> {
-        Ok(self.key.verify_signature(&message, &signature)?)
+        Ok(self.key.verify_signature(&message, &signature))
     }
 }
 
@@ -120,11 +120,11 @@ impl PyObjectProtocol for PublicKey {
 #[pyclass]
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct PrivateKey {
-    pub key: libsignal_protocol_rust::PrivateKey,
+    pub key: libsignal_protocol::PrivateKey,
 }
 
 impl PrivateKey {
-    pub fn new(key: libsignal_protocol_rust::PrivateKey) -> Self {
+    pub fn new(key: libsignal_protocol::PrivateKey) -> Self {
         PrivateKey { key }
     }
 }
@@ -135,7 +135,7 @@ impl PrivateKey {
     #[staticmethod]
     pub fn deserialize(key: &[u8]) -> Result<Self> {
         Ok(Self {
-            key: libsignal_protocol_rust::PrivateKey::deserialize(key)?,
+            key: libsignal_protocol::PrivateKey::deserialize(key)?,
         })
     }
 
@@ -144,7 +144,7 @@ impl PrivateKey {
     }
 
     pub fn calculate_signature(&self, message: &[u8], py: Python) -> Result<PyObject> {
-        let mut csprng = OsRng;
+        let mut csprng = rand::rngs::OsRng;
         let sig = self.key.calculate_signature(message, &mut csprng)?;
         Ok(PyBytes::new(py, &sig).into())
     }

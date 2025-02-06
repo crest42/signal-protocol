@@ -8,7 +8,7 @@ use crate::identity_key::IdentityKey;
 #[pyclass]
 #[derive(Clone, Debug)]
 pub struct Fingerprint {
-    pub state: libsignal_protocol_rust::Fingerprint,
+    pub state: libsignal_protocol::Fingerprint,
 }
 
 #[pymethods]
@@ -22,7 +22,7 @@ impl Fingerprint {
         remote_id: &[u8],
         remote_key: &IdentityKey,
     ) -> PyResult<Self> {
-        match libsignal_protocol_rust::Fingerprint::new(
+        match libsignal_protocol::Fingerprint::new(
             version,
             iterations,
             local_id,

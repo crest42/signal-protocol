@@ -10,7 +10,7 @@ use crate::state::SessionRecord;
 
 #[pyclass]
 pub struct AliceSignalProtocolParameters {
-    inner: libsignal_protocol_rust::AliceSignalProtocolParameters,
+    inner: libsignal_protocol::AliceSignalProtocolParameters,
 }
 
 #[pymethods]
@@ -22,7 +22,6 @@ impl AliceSignalProtocolParameters {
         their_identity_key: IdentityKey,
         their_signed_pre_key: PublicKey,
         their_one_time_pre_key: Option<PublicKey>,
-        their_ratchet_key: PublicKey,
     ) -> Self {
         let upstream_their_one_time_pre_key = match their_one_time_pre_key {
             None => None,
@@ -30,13 +29,12 @@ impl AliceSignalProtocolParameters {
         };
 
         Self {
-            inner: libsignal_protocol_rust::AliceSignalProtocolParameters::new(
+            inner: libsignal_protocol::AliceSignalProtocolParameters::new(
                 our_identity_key_pair.key,
                 our_base_key_pair.key,
                 their_identity_key.key,
                 their_signed_pre_key.key,
-                upstream_their_one_time_pre_key,
-                their_ratchet_key.key,
+                upstream_their_one_time_pre_key.expect("todo"),
             ),
         }
     }
@@ -87,13 +85,13 @@ pub fn initialize_alice_session(
 ) -> Result<SessionRecord> {
     let mut csprng = OsRng;
     let state =
-        libsignal_protocol_rust::initialize_alice_session_record(&parameters.inner, &mut csprng)?;
+        libsignal_protocol::initialize_alice_session_record(&parameters.inner, &mut csprng)?;
     Ok(SessionRecord { state })
 }
 
 #[pyclass]
 pub struct BobSignalProtocolParameters {
-    inner: libsignal_protocol_rust::BobSignalProtocolParameters,
+    inner: libsignal_protocol::BobSignalProtocolParameters<'static>,
 }
 
 #[pymethods]
@@ -113,13 +111,15 @@ impl BobSignalProtocolParameters {
         };
 
         Self {
-            inner: libsignal_protocol_rust::BobSignalProtocolParameters::new(
+            inner: libsignal_protocol::BobSignalProtocolParameters::new(
                 our_identity_key_pair.key,
                 our_signed_pre_key_pair.key,
                 upstream_our_one_time_pre_key_pair,
                 our_ratchet_key_pair.key,
+                None,
                 their_identity_key.key,
                 their_base_key.key,
+                None,
             ),
         }
     }
@@ -166,7 +166,7 @@ impl BobSignalProtocolParameters {
 
 #[pyfunction]
 pub fn initialize_bob_session(parameters: &BobSignalProtocolParameters) -> Result<SessionRecord> {
-    let state = libsignal_protocol_rust::initialize_bob_session_record(&parameters.inner)?;
+    let state = libsignal_protocol::initialize_bob_session_record(&parameters.inner)?;
     Ok(SessionRecord { state })
 }
 

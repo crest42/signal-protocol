@@ -14,16 +14,16 @@ use crate::error::{Result, SignalProtocolError};
 #[pyclass]
 #[derive(Debug, Clone, Copy)]
 pub struct IdentityKey {
-    pub key: libsignal_protocol_rust::IdentityKey,
+    pub key: libsignal_protocol::IdentityKey,
 }
 
 #[pymethods]
 impl IdentityKey {
-    // The behavior of libsignal_protocol_rust::IdentityKey::decode is provided
+    // The behavior of libsignal_protocol::IdentityKey::decode is provided
     // by the new() function.
     #[new]
     pub fn new(public_key: &[u8]) -> PyResult<Self> {
-        match libsignal_protocol_rust::IdentityKey::try_from(public_key) {
+        match libsignal_protocol::IdentityKey::try_from(public_key) {
             Ok(key) => Ok(Self { key }),
             Err(err) => Err(SignalProtocolError::new_err(err)),
         }
@@ -52,7 +52,7 @@ impl PyObjectProtocol for IdentityKey {
 #[pyclass]
 #[derive(Clone, Copy)]
 pub struct IdentityKeyPair {
-    pub key: libsignal_protocol_rust::IdentityKeyPair,
+    pub key: libsignal_protocol::IdentityKeyPair,
 }
 
 #[pymethods]
@@ -60,13 +60,13 @@ impl IdentityKeyPair {
     #[new]
     pub fn new(identity_key: IdentityKey, private_key: PrivateKey) -> Self {
         Self {
-            key: libsignal_protocol_rust::IdentityKeyPair::new(identity_key.key, private_key.key),
+            key: libsignal_protocol::IdentityKeyPair::new(identity_key.key, private_key.key),
         }
     }
 
     #[staticmethod]
     pub fn from_bytes(identity_key_pair_bytes: &[u8]) -> PyResult<Self> {
-        match libsignal_protocol_rust::IdentityKeyPair::try_from(identity_key_pair_bytes) {
+        match libsignal_protocol::IdentityKeyPair::try_from(identity_key_pair_bytes) {
             Ok(key) => Ok(Self { key }),
             Err(err) => Err(SignalProtocolError::new_err(err)),
         }
@@ -75,7 +75,7 @@ impl IdentityKeyPair {
     #[staticmethod]
     pub fn generate() -> Self {
         let mut csprng = OsRng;
-        let key_pair = libsignal_protocol_rust::IdentityKeyPair::generate(&mut csprng);
+        let key_pair = libsignal_protocol::IdentityKeyPair::generate(&mut csprng);
         IdentityKeyPair { key: key_pair }
     }
 

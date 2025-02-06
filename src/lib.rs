@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 mod address;
 mod curve;
 mod error;
+mod uuid;
 mod fingerprint;
 mod group_cipher;
 mod identity_key;
@@ -82,6 +83,10 @@ fn signal_protocol(py: Python, module: &PyModule) -> PyResult<()> {
     let storage_submod = PyModule::new(py, "storage")?;
     storage::init_submodule(storage_submod)?;
     module.add_submodule(storage_submod)?;
+
+    let uuid_submod = PyModule::new(py, "uuid")?;
+    uuid::init_submodule(uuid_submod)?;
+    module.add_submodule(uuid_submod)?;
 
     // Workaround to enable imports from submodules. Upstream issue: pyo3 issue #759
     // https://github.com/PyO3/pyo3/issues/759#issuecomment-653964601
