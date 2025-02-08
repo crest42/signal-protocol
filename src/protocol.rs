@@ -4,11 +4,11 @@ use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 
 use rand::rngs::OsRng;
+use uuid::Uuid;
 
 use crate::curve::{PrivateKey, PublicKey};
 use crate::error::{Result, SignalProtocolError};
 use crate::identity_key::IdentityKey;
-use crate::uuid::MyUuid;
 
 /// CiphertextMessage is a Rust enum in the upstream crate. Mapping of enums to Python enums
 /// is not supported in pyo3. We map the Rust enum and its variants to Python as a superclass
@@ -291,7 +291,7 @@ impl SenderKeyMessage {
     #[new]
     pub fn new(
         message_version: u8,
-        distribution_id: MyUuid,
+        distribution_id: String,
         key_id: u32,
         iteration: u32,
         ciphertext: &[u8],
@@ -300,7 +300,7 @@ impl SenderKeyMessage {
         let mut csprng = OsRng;
         let upstream_data = match libsignal_protocol::SenderKeyMessage::new(
             message_version,
-            distribution_id.uuid,
+            Uuid::parse_str(&distribution_id).unwrap(),
             key_id,
             iteration,
             ciphertext.into(),
@@ -374,7 +374,7 @@ impl SenderKeyDistributionMessage {
     #[new]
     pub fn new(
         message_version: u8,
-        distribution_id: MyUuid,
+        distribution_id: String,
         id: u32,
         iteration: u32,
         chain_key: &[u8],
@@ -382,7 +382,7 @@ impl SenderKeyDistributionMessage {
     ) -> PyResult<SenderKeyDistributionMessage> {
         let upstream_data = match libsignal_protocol::SenderKeyDistributionMessage::new(
             message_version,
-            distribution_id.uuid,
+            Uuid::parse_str(&distribution_id).unwrap(),
             id,
             iteration,
             chain_key.to_vec(),

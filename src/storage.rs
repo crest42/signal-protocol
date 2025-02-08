@@ -1,12 +1,13 @@
 use futures::executor::block_on;
 use pyo3::prelude::*;
 
+use uuid::Uuid;
+
 use crate::address::ProtocolAddress;
 use crate::error::{Result, SignalProtocolError};
 use crate::identity_key::{IdentityKey, IdentityKeyPair};
 use crate::sender_keys::SenderKeyRecord;
 use crate::state::{PreKeyId, PreKeyRecord, SessionRecord, SignedPreKeyId, SignedPreKeyRecord};
-use crate::uuid::MyUuid;
 
 // traits
 use libsignal_protocol::{
@@ -29,12 +30,9 @@ impl InMemSignalProtocolStore {
             Err(err) => Err(SignalProtocolError::new_err(err)),
         }
     }
-}
 
-/// libsignal_protocol::IdentityKeyStore
-/// is_trusted_identity is not implemented (it requries traits::Direction as arg)
-#[pymethods]
-impl InMemSignalProtocolStore {
+    /// libsignal_protocol::IdentityKeyStore
+    /// is_trusted_identity is not implemented (it requries traits::Direction as arg)
     fn get_identity_key_pair(&self) -> Result<IdentityKeyPair> {
         let key = block_on(self.store.identity_store.get_identity_key_pair())?;
         Ok(IdentityKeyPair { key })
@@ -61,11 +59,8 @@ impl InMemSignalProtocolStore {
             None => Ok(None),
         }
     }
-}
 
-/// libsignal_protocol::SessionStore
-#[pymethods]
-impl InMemSignalProtocolStore {
+    /// libsignal_protocol::SessionStore
     pub fn load_session(&self, address: &ProtocolAddress) -> Result<Option<SessionRecord>> {
         let session = block_on(self.store.load_session(&address.state))?;
 
@@ -82,11 +77,8 @@ impl InMemSignalProtocolStore {
         )?;
         Ok(())
     }
-}
 
-/// libsignal_protocol::PreKeyStore
-#[pymethods]
-impl InMemSignalProtocolStore {
+    /// libsignal_protocol::PreKeyStore
     fn get_pre_key(&self, id: PreKeyId) -> Result<PreKeyRecord> {
         let state = block_on(self.store.pre_key_store.get_pre_key(id.into()))?;
         Ok(PreKeyRecord { state })
@@ -105,11 +97,9 @@ impl InMemSignalProtocolStore {
         block_on(self.store.pre_key_store.remove_pre_key(id.into()))?;
         Ok(())
     }
-}
 
-/// libsignal_protocol::SignedPreKeyStore
-#[pymethods]
-impl InMemSignalProtocolStore {
+
+    /// libsignal_protocol::SignedPreKeyStore
     fn get_signed_pre_key(&self, id: SignedPreKeyId) -> Result<SignedPreKeyRecord> {
         let state = block_on(self.store.get_signed_pre_key(id.into()))?;
         Ok(SignedPreKeyRecord { state })
@@ -126,20 +116,17 @@ impl InMemSignalProtocolStore {
         )?;
         Ok(())
     }
-}
 
-/// libsignal_protocol::SenderKeyStore
-#[pymethods]
-impl InMemSignalProtocolStore {
+    /// libsignal_protocol::SenderKeyStore
     fn store_sender_key(
         &mut self,
         sender: &ProtocolAddress,
-        distribution_id: MyUuid,
+        distribution_id: String,
         record: &SenderKeyRecord,
     ) -> Result<()> {
         Ok(block_on(self.store.store_sender_key(
             &sender.state,
-            distribution_id.uuid,
+            Uuid::parse_str(&distribution_id).unwrap(),
             &record.state,
         ))?)
     }
@@ -147,9 +134,9 @@ impl InMemSignalProtocolStore {
     fn load_sender_key(
         &mut self,
         sender: &ProtocolAddress,
-        distribution_id: MyUuid,
+        distribution_id: String,
     ) -> Result<Option<SenderKeyRecord>> {
-        match block_on(self.store.load_sender_key(&sender.state, distribution_id.uuid))? {
+        match block_on(self.store.load_sender_key(&sender.state, Uuid::parse_str(&distribution_id).unwrap()))? {
             Some(state) => Ok(Some(SenderKeyRecord { state })),
             None => Ok(None),
         }

@@ -4,26 +4,26 @@ use pyo3::wrap_pyfunction;
 
 use futures::executor::block_on;
 use rand::rngs::OsRng;
+use uuid::Uuid;
 
 use crate::error::{Result, SignalProtocolError};
 use crate::protocol::SenderKeyDistributionMessage;
 use crate::address::ProtocolAddress;
 use crate::storage::InMemSignalProtocolStore;
-use crate::uuid::MyUuid;
 
 #[pyfunction]
 pub fn group_encrypt(
     py: Python,
     protocol_store: &mut InMemSignalProtocolStore,
     sender: &ProtocolAddress,
-    distribution_id: MyUuid,
+    distribution_id: String,
     plaintext: &[u8],
 ) -> Result<PyObject> {
     let mut csprng = OsRng;
     let ciphertext = block_on(libsignal_protocol::group_encrypt(
         &mut protocol_store.store.sender_key_store,
         &sender.state,
-        distribution_id.uuid,
+        Uuid::parse_str(&distribution_id).unwrap(),
         plaintext,
         &mut csprng,
     ))?;
@@ -63,14 +63,14 @@ pub fn process_sender_key_distribution_message(
 #[pyfunction]
 pub fn create_sender_key_distribution_message(
     sender: &ProtocolAddress,
-    distribution_id: MyUuid,
+    distribution_id: String,
     protocol_store: &mut InMemSignalProtocolStore,
 ) -> PyResult<SenderKeyDistributionMessage> {
     let mut csprng = OsRng;
     let upstream_data = match block_on(
         libsignal_protocol::create_sender_key_distribution_message(
             &sender.state,
-            distribution_id.uuid,
+            Uuid::parse_str(&distribution_id).unwrap(),
             &mut protocol_store.store.sender_key_store,
             &mut csprng,
         ),
