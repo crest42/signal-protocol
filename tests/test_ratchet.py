@@ -143,7 +143,6 @@ def test_ratcheting_session_as_alice():
         alice_base_key,
         bob_identity_public,
         bob_signed_prekey_public,
-        None,
         bob_ephemeral_public,
     )
 
