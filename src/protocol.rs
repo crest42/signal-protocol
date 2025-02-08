@@ -85,7 +85,7 @@ impl PreKeySignalMessage {
         let upstream_data = match libsignal_protocol::PreKeySignalMessage::new(
             message_version,
             registration_id,
-            Some(libsignal_protocol::PreKeyId::from(pre_key_id.expect("foo"))),
+            pre_key_id.map(|id| id.into()),
             signed_pre_key_id.into(),
             None,
             base_key.key,
