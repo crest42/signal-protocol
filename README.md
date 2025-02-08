@@ -2,9 +2,9 @@ THIS IS A FORK OF https://github.com/freedomofpress/signal-protocol with the aim
 
 I updated the code to compile with the latest libsignal but there is still some work left and I assume it is currently not in a working state. Known todos:
 
-- MyUuid is a ugly hack. Rename to Uuid or better use Python uuid module
 - Not updated for Kyber support. I assume this breaks key exchange.
-- Tests are not updates yet.
+- python uuid support was recently added to pyo3. Wait for next release and update. Use string for now
+
 
 I hope I find some time to further develop this and run it against a private signal server. Much shoutout to freedomofpress for the awesome work.
 
