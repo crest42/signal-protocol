@@ -58,8 +58,8 @@ def test_basic_prekey_v3():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id,
+        bob_pre_key_pair.public_key()),
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -154,8 +154,8 @@ def test_basic_prekey_v3():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id + 1,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id + 1,
+        bob_pre_key_pair.public_key()),
         signed_pre_key_id + 1,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -199,8 +199,8 @@ def test_basic_prekey_v3():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id,
+        bob_pre_key_pair.public_key()),
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -258,8 +258,8 @@ def test_bad_signed_pre_key_signature():
         bob_pre_key_bundle = state.PreKeyBundle(
             bob_store.get_local_registration_id(),
             DEVICE_ID,
-            pre_key_id,
-            bob_pre_key_pair.public_key(),
+            (pre_key_id,
+            bob_pre_key_pair.public_key()),
             signed_pre_key_id,
             bob_signed_pre_key_pair.public_key(),
             bad_signature,
@@ -273,8 +273,8 @@ def test_bad_signed_pre_key_signature():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id,
+        bob_pre_key_pair.public_key()),
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -318,8 +318,8 @@ def test_repeat_bundle_message_v3():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id,
+        bob_pre_key_pair.public_key()),
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -425,8 +425,8 @@ def test_bad_message_bundle():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id,
+        bob_pre_key_pair.public_key()),
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -521,8 +521,7 @@ def test_optional_one_time_prekey():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        None,  # No prekey
-        None,  # No prekey
+        None,
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,
@@ -1188,8 +1187,7 @@ def test_basic_large_message():
     bob_pre_key_bundle = state.PreKeyBundle(
         bob_store.get_local_registration_id(),
         DEVICE_ID,
-        pre_key_id,
-        bob_pre_key_pair.public_key(),
+        (pre_key_id, bob_pre_key_pair.public_key()),
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,

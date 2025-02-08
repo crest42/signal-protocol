@@ -24,20 +24,19 @@ pub struct PreKeyBundle {
 #[pymethods]
 impl PreKeyBundle {
     #[new]
-    #[pyo3(signature = (registration_id, device_id, pre_key_id, pre_key_public, signed_pre_key_id, signed_pre_key_public, signed_pre_key_signature, identity_key))]
+    #[pyo3(signature = (registration_id, device_id, pre_key, signed_pre_key_id, signed_pre_key_public, signed_pre_key_signature, identity_key))]
     fn new(
         registration_id: u32,
         device_id: u32,
-        pre_key_id: PreKeyId,
-        pre_key_public: Option<PublicKey>,
+        pre_key: Option<(PreKeyId, PublicKey)>,
         signed_pre_key_id: SignedPreKeyId,
         signed_pre_key_public: PublicKey,
         signed_pre_key_signature: Vec<u8>,
         identity_key: IdentityKey,
     ) -> PyResult<Self> {
-        let pre_key: std::option::Option<libsignal_protocol::PublicKey> = match pre_key_public
+        let pre_key: Option<(libsignal_protocol::PreKeyId, libsignal_protocol::PublicKey)> = match pre_key
         {
-            Some(inner) => Some(inner.key),
+            Some(inner) => Some((inner.0.into(), inner.1.key)),
             None => None,
         };
         let signed_pre_key = signed_pre_key_public.key;
@@ -46,7 +45,7 @@ impl PreKeyBundle {
         match libsignal_protocol::PreKeyBundle::new(
             registration_id,
             device_id.into(),
-            Some((pre_key_id.into(), pre_key.expect("todo"))),
+            pre_key,
             signed_pre_key_id.into(),
             signed_pre_key.into(),
             signed_pre_key_signature,

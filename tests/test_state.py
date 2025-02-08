@@ -38,7 +38,6 @@ def test_define_prekey_bundle_under_prekey_exhaustion():
         bob_store.get_local_registration_id(),
         DEVICE_ID,
         None,
-        None,
         signed_pre_key_id,
         bob_signed_pre_key_pair.public_key(),
         bob_signed_pre_key_signature,

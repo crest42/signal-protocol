@@ -111,7 +111,6 @@ def initialize_sessions_v3():
         alice_base_key,
         bob_identity.identity_key(),
         bob_base_key.public_key(),
-        None,
         bob_ephemeral_key.public_key(),
     )
 
@@ -245,8 +244,8 @@ def create_pre_key_bundle(store):
     pre_key_bundle = state.PreKeyBundle(
         store.get_local_registration_id(),
         device_id,
-        pre_key_id,
-        pre_key_pair.public_key(),
+        (pre_key_id,
+        pre_key_pair.public_key()),
         signed_pre_key_id,
         signed_pre_key_pair.public_key(),
         signed_pre_key_signature,
