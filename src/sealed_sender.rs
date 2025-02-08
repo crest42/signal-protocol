@@ -85,6 +85,7 @@ impl SenderCertificate {
     }
 
     #[new]
+    #[pyo3(signature = (sender_uuid, sender_e164, key, sender_device_id, expiration, signer, signer_key))]
     fn new(
         sender_uuid: String,
         sender_e164: Option<String>,
@@ -242,6 +243,7 @@ impl SealedSenderDecryptionResult {
 }
 
 #[pyfunction]
+#[pyo3(signature = (ciphertext, trust_root, timestamp, local_e164, local_uuid, local_device_id, protocol_store))]
 pub fn sealed_sender_decrypt(
     ciphertext: &[u8],
     trust_root: &PublicKey,
@@ -304,7 +306,7 @@ pub fn sealed_sender_decrypt_to_usmc(
     }
 }
 
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<SenderCertificate>()?;
     module.add_class::<ServerCertificate>()?;
     module.add_class::<UnidentifiedSenderMessageContent>()?;

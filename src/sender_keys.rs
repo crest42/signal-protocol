@@ -27,7 +27,7 @@ impl SenderKeyRecord {
     }
 }
 
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<SenderKeyRecord>()?;
     Ok(())
 }

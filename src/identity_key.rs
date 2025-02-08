@@ -4,7 +4,6 @@ use pyo3::basic::CompareOp;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
-use pyo3::PyObjectProtocol;
 
 use rand::rngs::OsRng;
 
@@ -36,10 +35,7 @@ impl IdentityKey {
     pub fn serialize(&self, py: Python) -> PyObject {
         PyBytes::new(py, &self.key.serialize()).into()
     }
-}
 
-#[pyproto]
-impl PyObjectProtocol for IdentityKey {
     fn __richcmp__(&self, other: IdentityKey, op: CompareOp) -> PyResult<bool> {
         match op {
             CompareOp::Eq => Ok(self.key.serialize() == other.key.serialize()),
@@ -48,6 +44,7 @@ impl PyObjectProtocol for IdentityKey {
         }
     }
 }
+
 
 #[pyclass]
 #[derive(Clone, Copy)]
@@ -101,7 +98,7 @@ impl IdentityKeyPair {
     }
 }
 
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<IdentityKey>()?;
     module.add_class::<IdentityKeyPair>()?;
     Ok(())

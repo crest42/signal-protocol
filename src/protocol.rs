@@ -50,7 +50,7 @@ pub struct PreKeySignalMessage {
 #[pymethods]
 impl PreKeySignalMessage {
     #[staticmethod]
-    pub fn try_from(data: &[u8]) -> PyResult<Py<PreKeySignalMessage>> {
+    pub unsafe fn try_from(data: &[u8]) -> PyResult<Py<PreKeySignalMessage>> {
         let upstream_data = match libsignal_protocol::PreKeySignalMessage::try_from(data) {
             Ok(data) => data,
             Err(err) => return Err(SignalProtocolError::new_err(err)),
@@ -59,8 +59,7 @@ impl PreKeySignalMessage {
             libsignal_protocol::CiphertextMessage::PreKeySignalMessage(upstream_data.clone());
 
         // Workaround to allow two constructors with pyclass inheritence
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+        let py = Python::assume_gil_acquired();
         Py::new(
             py,
             (
@@ -73,6 +72,7 @@ impl PreKeySignalMessage {
     }
 
     #[new]
+    #[pyo3(signature = (message_version, registration_id, pre_key_id, signed_pre_key_id, base_key, identity_key, message))]
     pub fn new(
         message_version: u8,
         registration_id: u32,
@@ -137,9 +137,8 @@ impl PreKeySignalMessage {
         }
     }
 
-    pub fn message(&self) -> PyResult<Py<SignalMessage>> {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+    pub unsafe fn message(&self) -> PyResult<Py<SignalMessage>> {
+        let py = Python::assume_gil_acquired();
         let upstream_data = self.data.message().clone();
         let ciphertext =
             libsignal_protocol::CiphertextMessage::SignalMessage(upstream_data.clone());
@@ -165,7 +164,7 @@ pub struct SignalMessage {
 #[pymethods]
 impl SignalMessage {
     #[staticmethod]
-    pub fn try_from(data: &[u8]) -> PyResult<Py<SignalMessage>> {
+    pub unsafe fn try_from(data: &[u8]) -> PyResult<Py<SignalMessage>> {
         let upstream_data = match libsignal_protocol::SignalMessage::try_from(data) {
             Ok(data) => data,
             Err(err) => return Err(SignalProtocolError::new_err(err)),
@@ -174,8 +173,7 @@ impl SignalMessage {
             libsignal_protocol::CiphertextMessage::SignalMessage(upstream_data.clone());
 
         // Workaround to allow two constructors with pyclass inheritence
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+        let py = Python::assume_gil_acquired();
         Py::new(
             py,
             (
@@ -266,7 +264,7 @@ pub struct SenderKeyMessage {
 #[pymethods]
 impl SenderKeyMessage {
     #[staticmethod]
-    pub fn try_from(data: &[u8]) -> PyResult<Py<SenderKeyMessage>> {
+    pub unsafe fn try_from(data: &[u8]) -> PyResult<Py<SenderKeyMessage>> {
         let upstream_data = match libsignal_protocol::SenderKeyMessage::try_from(data) {
             Ok(data) => data,
             Err(err) => return Err(SignalProtocolError::new_err(err)),
@@ -275,8 +273,7 @@ impl SenderKeyMessage {
             libsignal_protocol::CiphertextMessage::SenderKeyMessage(upstream_data.clone());
 
         // Workaround to allow two constructors with pyclass inheritence
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+        let py = Python::assume_gil_acquired();
         Py::new(
             py,
             (
@@ -354,15 +351,22 @@ pub struct SenderKeyDistributionMessage {
 #[pymethods]
 impl SenderKeyDistributionMessage {
     #[staticmethod]
-    pub fn try_from(data: &[u8]) -> PyResult<Py<SenderKeyDistributionMessage>> {
+    pub unsafe fn try_from(data: &[u8]) -> PyResult<Py<SenderKeyDistributionMessage>> {
         let upstream_data =
             match libsignal_protocol::SenderKeyDistributionMessage::try_from(data) {
                 Ok(data) => data,
                 Err(err) => return Err(SignalProtocolError::new_err(err)),
             };
         // Workaround to allow two constructors with pyclass inheritence
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+        // Python::with_gil(|py| {
+        //     Py::new(
+        //     py,
+        //     SenderKeyDistributionMessage {
+        //         data: upstream_data.clone(),
+        //     },
+        // )
+        // })
+        let py = Python::assume_gil_acquired();
         Py::new(
             py,
             SenderKeyDistributionMessage {
@@ -427,7 +431,7 @@ impl SenderKeyDistributionMessage {
 
 /// CiphertextMessageType is an Enum that is not exposed as part
 /// of the Python API.
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<CiphertextMessage>()?;
     module.add_class::<PreKeySignalMessage>()?;
     module.add_class::<SignalMessage>()?;

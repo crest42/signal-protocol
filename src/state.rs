@@ -24,6 +24,7 @@ pub struct PreKeyBundle {
 #[pymethods]
 impl PreKeyBundle {
     #[new]
+    #[pyo3(signature = (registration_id, device_id, pre_key_id, pre_key_public, signed_pre_key_id, signed_pre_key_public, signed_pre_key_signature, identity_key))]
     fn new(
         registration_id: u32,
         device_id: u32,
@@ -324,7 +325,7 @@ impl SessionRecord {
 }
 
 /// UnacknowledgedPreKeyMessageItems is not exposed as part of the upstream public API.
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<PreKeyBundle>()?;
     module.add_class::<PreKeyRecord>()?;
     module.add_class::<SessionRecord>()?;

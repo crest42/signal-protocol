@@ -20,6 +20,9 @@ pub struct InMemSignalProtocolStore {
     pub store: libsignal_protocol::InMemSignalProtocolStore,
 }
 
+
+/// libsignal_protocol::IdentityKeyStore
+/// is_trusted_identity is not implemented (it requries traits::Direction as arg)
 #[pymethods]
 impl InMemSignalProtocolStore {
     #[new]
@@ -31,8 +34,6 @@ impl InMemSignalProtocolStore {
         }
     }
 
-    /// libsignal_protocol::IdentityKeyStore
-    /// is_trusted_identity is not implemented (it requries traits::Direction as arg)
     fn get_identity_key_pair(&self) -> Result<IdentityKeyPair> {
         let key = block_on(self.store.identity_store.get_identity_key_pair())?;
         Ok(IdentityKeyPair { key })
@@ -98,13 +99,12 @@ impl InMemSignalProtocolStore {
         Ok(())
     }
 
-
-    /// libsignal_protocol::SignedPreKeyStore
     fn get_signed_pre_key(&self, id: SignedPreKeyId) -> Result<SignedPreKeyRecord> {
         let state = block_on(self.store.get_signed_pre_key(id.into()))?;
         Ok(SignedPreKeyRecord { state })
     }
 
+    /// libsignal_protocol::SenderKeyStore
     fn save_signed_pre_key(
         &mut self,
         id: SignedPreKeyId,
@@ -117,7 +117,6 @@ impl InMemSignalProtocolStore {
         Ok(())
     }
 
-    /// libsignal_protocol::SenderKeyStore
     fn store_sender_key(
         &mut self,
         sender: &ProtocolAddress,
@@ -148,7 +147,7 @@ impl InMemSignalProtocolStore {
 /// Python classes for InMemSenderKeyStore, InMemSessionStore, InMemIdentityKeyStore, InMemPreKeyStore
 /// or InMemSignedPreKeyStore are not exposed.
 /// One will need to operate on the InMemSignalProtocolStore instead.
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<InMemSignalProtocolStore>()?;
     Ok(())
 }

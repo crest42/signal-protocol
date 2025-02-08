@@ -87,7 +87,7 @@ pub fn message_decrypt_signal(
     Ok(PyBytes::new(py, &plaintext).into())
 }
 
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(message_encrypt))?;
     module.add_wrapped(wrap_pyfunction!(message_decrypt))?;
     module.add_wrapped(wrap_pyfunction!(message_decrypt_prekey))?;

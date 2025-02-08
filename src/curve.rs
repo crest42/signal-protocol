@@ -1,4 +1,4 @@
-use pyo3::class::basic::{CompareOp, PyObjectProtocol};
+use pyo3::class::basic::CompareOp;
 use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -104,10 +104,7 @@ impl PublicKey {
     pub fn verify_signature(&self, message: &[u8], signature: &[u8]) -> Result<bool> {
         Ok(self.key.verify_signature(&message, &signature))
     }
-}
 
-#[pyproto]
-impl PyObjectProtocol for PublicKey {
     fn __richcmp__(&self, other: PublicKey, op: CompareOp) -> PyResult<bool> {
         match op {
             CompareOp::Eq => Ok(self.key.serialize() == other.key.serialize()),
@@ -167,7 +164,7 @@ pub fn verify_signature(public_key: &PublicKey, message: &[u8], signature: &[u8]
 }
 
 /// KeyType is not exposed as part of the Python API.
-pub fn init_curve_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_curve_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<KeyPair>()?;
     module.add_class::<PublicKey>()?;
     module.add_class::<PrivateKey>()?;

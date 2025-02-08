@@ -83,7 +83,7 @@ pub fn create_sender_key_distribution_message(
     })
 }
 
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_wrapped(wrap_pyfunction!(group_encrypt))?;
     module.add_wrapped(wrap_pyfunction!(group_decrypt))?;
     module.add_wrapped(wrap_pyfunction!(process_sender_key_distribution_message))?;

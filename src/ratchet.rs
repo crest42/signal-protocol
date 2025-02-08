@@ -21,20 +21,15 @@ impl AliceSignalProtocolParameters {
         our_base_key_pair: KeyPair,
         their_identity_key: IdentityKey,
         their_signed_pre_key: PublicKey,
-        their_one_time_pre_key: Option<PublicKey>,
+        their_one_time_pre_key: PublicKey,
     ) -> Self {
-        let upstream_their_one_time_pre_key = match their_one_time_pre_key {
-            None => None,
-            Some(x) => Some(x.key),
-        };
-
         Self {
             inner: libsignal_protocol::AliceSignalProtocolParameters::new(
                 our_identity_key_pair.key,
                 our_base_key_pair.key,
                 their_identity_key.key,
                 their_signed_pre_key.key,
-                upstream_their_one_time_pre_key.expect("todo"),
+                their_one_time_pre_key.key,
             ),
         }
     }
@@ -97,6 +92,7 @@ pub struct BobSignalProtocolParameters {
 #[pymethods]
 impl BobSignalProtocolParameters {
     #[new]
+    #[pyo3(signature = (our_identity_key_pair, our_signed_pre_key_pair, our_one_time_pre_key_pair, our_ratchet_key_pair, their_identity_key, their_base_key))]
     pub fn new(
         our_identity_key_pair: IdentityKeyPair,
         our_signed_pre_key_pair: KeyPair,
@@ -171,7 +167,7 @@ pub fn initialize_bob_session(parameters: &BobSignalProtocolParameters) -> Resul
 }
 
 /// fn are_we_alice, ChainKey, RootKey, MessageKey are not exposed as part of the Python API.
-pub fn init_submodule(module: &PyModule) -> PyResult<()> {
+pub fn init_submodule(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<AliceSignalProtocolParameters>()?;
     module.add_wrapped(wrap_pyfunction!(initialize_alice_session))?;
     module.add_class::<BobSignalProtocolParameters>()?;
